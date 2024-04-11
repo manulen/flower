@@ -21,6 +21,8 @@ Paper: arxiv.org/abs/1602.05629
 from logging import WARNING
 from typing import Callable, Dict, List, Optional, Tuple, Union
 
+import tenseal as ts
+
 from flwr.common import (
     EvaluateIns,
     EvaluateRes,
@@ -110,6 +112,7 @@ class FedAvg(Strategy):
         fit_metrics_aggregation_fn: Optional[MetricsAggregationFn] = None,
         evaluate_metrics_aggregation_fn: Optional[MetricsAggregationFn] = None,
         inplace: bool = True,
+        he_context: ts.Context | None = None
     ) -> None:
         super().__init__()
 
@@ -132,11 +135,22 @@ class FedAvg(Strategy):
         self.fit_metrics_aggregation_fn = fit_metrics_aggregation_fn
         self.evaluate_metrics_aggregation_fn = evaluate_metrics_aggregation_fn
         self.inplace = inplace
+        self.he_context = he_context
 
     def __repr__(self) -> str:
         """Compute a string representation of the strategy."""
         rep = f"FedAvg(accept_failures={self.accept_failures})"
         return rep
+    
+    @property
+    def he_context(self) -> ts.Context | None:
+        return self._he_context
+
+    @he_context.setter
+    def he_context(self, value: ts.Context | bytes | None):
+        if isinstance(value, bytes):
+            value = ts.context_from(value)
+        self._he_context = value
 
     def num_fit_clients(self, num_available_clients: int) -> Tuple[int, int]:
         """Return the sample size and the required number of available clients."""
@@ -174,10 +188,10 @@ class FedAvg(Strategy):
         self, server_round: int, parameters: Parameters, client_manager: ClientManager
     ) -> List[Tuple[ClientProxy, FitIns]]:
         """Configure the next round of training."""
-        config = {}
+        config = {"server_round": server_round}
         if self.on_fit_config_fn is not None:
             # Custom fit config function provided
-            config = self.on_fit_config_fn(server_round)
+            config.update(self.on_fit_config_fn(server_round))
         fit_ins = FitIns(parameters, config)
 
         # Sample clients
@@ -236,7 +250,7 @@ class FedAvg(Strategy):
         else:
             # Convert results
             weights_results = [
-                (parameters_to_ndarrays(fit_res.parameters), fit_res.num_examples)
+                (parameters_to_ndarrays(fit_res.parameters, he_context=self.he_context), fit_res.num_examples)
                 for _, fit_res in results
             ]
             aggregated_ndarrays = aggregate(weights_results)
