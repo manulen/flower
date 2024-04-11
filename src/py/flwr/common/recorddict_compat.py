@@ -63,16 +63,13 @@ def arrayrecord_to_parameters(record: ArrayRecord, keep_input: bool) -> Paramete
     parameters : Parameters
         The parameters in the legacy format Parameters.
     """
-    parameters = Parameters(tensors=[], tensor_type="")
+    parameters = Parameters(tensors=[], tensor_type=[])
 
     for key in list(record.keys()):
         if key != EMPTY_TENSOR_KEY:
             parameters.tensors.append(record[key].data)
 
-        if not parameters.tensor_type:
-            # Setting from first array in record. Recall the warning in the docstrings
-            # of this function.
-            parameters.tensor_type = record[key].stype
+        parameters.tensor_type.append(record[key].stype)
 
         if not keep_input:
             del record[key]
@@ -101,15 +98,17 @@ def parameters_to_arrayrecord(parameters: Parameters, keep_input: bool) -> Array
     ArrayRecord
         The ArrayRecord containing the provided parameters.
     """
-    tensor_type = parameters.tensor_type
-
     num_arrays = len(parameters.tensors)
+    if isinstance(parameters.tensor_type, str):
+        parameters.tensor_type = num_arrays * [parameters.tensor_type]
     ordered_dict = OrderedDict()
     for idx in range(num_arrays):
         if keep_input:
             tensor = parameters.tensors[idx]
+            tensor_type = parameters.tensor_type[idx]
         else:
             tensor = parameters.tensors.pop(0)
+            tensor_type = parameters.tensor_type.pop(0)
         ordered_dict[str(idx)] = Array(
             data=tensor, dtype="", stype=tensor_type, shape=[]
         )
