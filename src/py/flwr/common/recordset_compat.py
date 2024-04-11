@@ -56,15 +56,11 @@ def parametersrecord_to_parameters(
         A boolean indicating whether entries in the record should be deleted from the
         input dictionary immediately after adding them to the record.
     """
-    parameters = Parameters(tensors=[], tensor_type="")
+    parameters = Parameters(tensors=[], tensor_type=[])
 
     for key in list(record.keys()):
         parameters.tensors.append(record[key].data)
-
-        if not parameters.tensor_type:
-            # Setting from first array in record. Recall the warning in the docstrings
-            # of this function.
-            parameters.tensor_type = record[key].stype
+        parameters.tensor_type.append(record[key].stype)
 
         if not keep_input:
             del record[key]
@@ -90,15 +86,18 @@ def parameters_to_parametersrecord(
         Parameters object (i.e. a list of serialized NumPy arrays) immediately after
         adding them to the record.
     """
-    tensor_type = parameters.tensor_type
-
     num_arrays = len(parameters.tensors)
+    if isinstance(parameters.tensor_type, str):
+        parameters.tensor_type = num_arrays * [parameters.tensor_type]
+
     ordered_dict = OrderedDict()
     for idx in range(num_arrays):
         if keep_input:
             tensor = parameters.tensors[idx]
+            tensor_type = parameters.tensor_type[idx]
         else:
             tensor = parameters.tensors.pop(0)
+            tensor_type = parameters.tensor_type.pop(0)
         ordered_dict[str(idx)] = Array(
             data=tensor, dtype="", stype=tensor_type, shape=[]
         )
