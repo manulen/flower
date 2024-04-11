@@ -17,7 +17,7 @@
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 
 import numpy as np
 import numpy.typing as npt
@@ -84,7 +84,7 @@ class Parameters:
     """Model parameters."""
 
     tensors: List[bytes]
-    tensor_type: str
+    tensor_type: list[Literal["numpy.ndarray", "tenseal.CKKSVector"]] | str
 
 
 @dataclass
