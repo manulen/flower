@@ -55,7 +55,8 @@ class RayBackend(Backend):
         runtime_env = (
             self._configure_runtime_env(work_dir=work_dir) if work_dir else None
         )
-        init_ray(runtime_env=runtime_env)
+        ray_init_args = backend_config.pop("ray_init_args", {})
+        init_ray(runtime_env=runtime_env, **ray_init_args)
 
         # Validate client resources
         self.client_resources_key = "client_resources"
