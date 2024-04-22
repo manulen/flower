@@ -126,7 +126,7 @@ class GetParametersRes:
 class FitIns:
     """Fit instructions for a client."""
 
-    parameters: Parameters
+    parameters: Parameters | None
     config: dict[str, Scalar]
 
 

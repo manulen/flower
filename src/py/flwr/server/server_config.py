@@ -29,6 +29,7 @@ class ServerConfig:
 
     num_rounds: int = 1
     round_timeout: Optional[float] = None
+    initialize_params: bool = True
 
     def __repr__(self) -> str:
         """Return the string representation of the ServerConfig."""
