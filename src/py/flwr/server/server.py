@@ -63,12 +63,14 @@ class Server:
         *,
         client_manager: ClientManager,
         strategy: Optional[Strategy] = None,
+        initialize_params: bool = True,
     ) -> None:
         self._client_manager: ClientManager = client_manager
         self.parameters: Parameters = Parameters(
             tensors=[], tensor_type="numpy.ndarray"
         )
         self.strategy: Strategy = strategy if strategy is not None else FedAvg()
+        self.initialize_params = initialize_params
         self.max_workers: Optional[int] = None
 
     def set_max_workers(self, max_workers: Optional[int]) -> None:
@@ -90,18 +92,19 @@ class Server:
 
         # Initialize parameters
         log(INFO, "[INIT]")
-        self.parameters = self._get_initial_parameters(server_round=0, timeout=timeout)
-        log(INFO, "Evaluating initial global parameters")
-        res = self.strategy.evaluate(0, parameters=self.parameters)
-        if res is not None:
-            log(
-                INFO,
-                "initial parameters (loss, other metrics): %s, %s",
-                res[0],
-                res[1],
-            )
-            history.add_loss_centralized(server_round=0, loss=res[0])
-            history.add_metrics_centralized(server_round=0, metrics=res[1])
+        if self.initialize_params:
+            self.parameters = self._get_initial_parameters(server_round=0, timeout=timeout)
+            log(INFO, "Evaluating initial global parameters")
+            res = self.strategy.evaluate(0, parameters=self.parameters)
+            if res is not None:
+                log(
+                    INFO,
+                    "initial parameters (loss, other metrics): %s, %s",
+                    res[0],
+                    res[1],
+                )
+                history.add_loss_centralized(server_round=0, loss=res[0])
+                history.add_metrics_centralized(server_round=0, metrics=res[1])
 
         # Run federated learning for num_rounds
         start_time = timeit.default_timer()
@@ -464,7 +467,11 @@ def init_defaults(
             client_manager = SimpleClientManager()
         if strategy is None:
             strategy = FedAvg()
-        server = Server(client_manager=client_manager, strategy=strategy)
+        server = Server(
+            client_manager=client_manager,
+            strategy=strategy,
+            initialize_params=config.initialize_params
+        )
     elif strategy is not None:
         log(WARN, "Both server and strategy were provided, ignoring strategy")
 
