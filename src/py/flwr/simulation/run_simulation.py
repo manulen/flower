@@ -303,6 +303,7 @@ def _run_simulation(
     if verbose_logging:
         update_console_handler(level=DEBUG, timestamps=True, colored=True)
     else:
+        logger.setLevel("INFO")
         backend_config["silent"] = True
 
     if enable_tf_gpu_growth:
